@@ -2,7 +2,7 @@ module github.com/shanliao420/DFES-Go-Client
 
 go 1.22.0
 
-require github.com/shanliao420/DFES v1.0.3
+require github.com/shanliao420/DFES v1.0.4
 
 require (
 	github.com/golang/protobuf v1.5.3 // indirect
