@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/shanliao420/DFES/gateway"
 	registryPB "github.com/shanliao420/DFES/gateway/proto"
@@ -70,9 +71,17 @@ func (dc *DFESClient) Get(ctx context.Context, id string) ([]byte, error) {
 	getReq := &mateServerPB.GetRequest{
 		DataId: id,
 	}
+	isDataExist, err := mateServer.IsDataExists(ctx, getReq)
+	if err != nil {
+		log.Println("make sure data exists err:", err)
+		return nil, err
+	}
+	if !isDataExist.IsDataExists {
+		return nil, errors.New("the data [" + id + "] was already removed ")
+	}
 	getResp, err := mateServer.Get(ctx, getReq)
 	if err != nil {
-		log.Println("push data error:", err)
+		log.Println("get data error:", err)
 	}
 	if getResp.GetResult {
 		return getResp.Data, nil
@@ -104,6 +113,9 @@ func (dc *DFESClient) Delete(ctx context.Context, id string) (bool, error) {
 	}
 	if delResp.DeleteResult {
 		return delResp.DeleteResult, nil
+	}
+	if delResp.Code == mateServerPB.MateCode_FileNotExist {
+		return true, nil // file already deleted, simply return true
 	}
 	if delResp.Code == mateServerPB.MateCode_NotLeader {
 		for i := 0; i < 3; i++ {
@@ -180,7 +192,7 @@ func (dc *DFESClient) GetStream(ctx context.Context, id string) (io.Reader, erro
 		return nil, err
 	}
 	if !isDataExist.IsDataExists {
-		return nil, nil
+		return nil, errors.New("the data [" + id + "] was already removed ")
 	}
 	getStream, err := mateServer.GetStream(ctx, getRequest)
 	if err != nil {
